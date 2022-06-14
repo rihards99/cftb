@@ -1,0 +1,24 @@
+{
+  "name": "cftb",
+  "version": "1.0.0",
+  "description": "Comments from The Beyond",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.18.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rihards99/cftb.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rihards99/cftb/issues"
+  },
+  "homepage": "https://github.com/rihards99/cftb#readme"
+}
