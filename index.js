@@ -16,10 +16,11 @@ let db = new sqlite3.Database(dbSource, (err) => {
       db.run(`
           CREATE TABLE comments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp text,
-            commentText text,
-            name text,
-            thumbnail text
+            timestamp TEXT,
+            commentText TEXT,
+            name TEXT,
+            thumbnail TEXT,
+            upvoters TEXT
           )
         `,
       (err) => {
@@ -27,18 +28,20 @@ let db = new sqlite3.Database(dbSource, (err) => {
               // Table already created
           } else {
               // Table just created, creating some rows
-              const insert = 'INSERT INTO comments (timestamp, commentText, name, thumbnail) VALUES (?,?,?,?)'
+              const insert = 'INSERT INTO comments (timestamp, commentText, name, thumbnail, upvoters) VALUES (?,?,?,?, ?)'
               db.run(insert, [
                 '1655190034000',
                 `Jeepers now that's a huge release with some big community earnings to back it - it must be so rewarding seeing creators quit their day jobs after monetizing (with real MRR) on the new platform.`,
                 'Rob Hope',
                 'https://randomuser.me/api/portraits/thumb/men/3.jpg',
+                'c739e343-d063-4d19-a572-ba88353e8e07,0000',
               ])
               db.run(insert, [
                 '1655203709486',
                 `Switched our blog from Hubspot to Ghost a year ago -- turned out to be a great decision. Looking forward to this update....the in-platform analytics look especially delicious. :)`,
                 'Sophie Brecht',
                 'https://randomuser.me/api/portraits/thumb/women/3.jpg',
+                '',
               ])
           }
       });
@@ -65,20 +68,21 @@ app.get('/comments', (req, res) => {
           thumbnail: row.thumbnail,
         },
         text: row.commentText,
-
+        upvoters: row.upvoters.split(',')
       }))
     })
-  });
+  })
 })
 
 app.post('/comment', (req, res) => {
   const data = req.body;
-  const insert = 'INSERT INTO comments (timestamp, commentText, name, thumbnail) VALUES (?,?,?,?)'
+  const insert = 'INSERT INTO comments (timestamp, commentText, name, thumbnail, upvoters) VALUES (?,?,?,?,?)'
   db.run(insert, [
     data.timestamp,
     data.commentText,
     data.name,
     data.thumbnail,
+    '',
   ], (err) => {
     if (err) {
       res.status(400).json({ error: err.message });
@@ -86,6 +90,37 @@ app.post('/comment', (req, res) => {
       res.json({ status: 'SUCCESS'})
     }
   })
+})
+
+app.post('/upvote', (req, res) => {
+  const {commentId, userId} = req.body
+  if (commentId && userId) {
+    db.get('SELECT upvoters FROM comments WHERE id=?;', [commentId], (err, rows) => {
+      if (err) {
+        res.status(400).json({ error: err.message });
+      } else {
+        const upvoters = rows.upvoters.split(',')
+        let newUpvoters
+        if (upvoters.find(upvoter => upvoter === userId)) {
+          newUpvoters = upvoters.filter(upvoter => upvoter !== userId)
+        } else {
+          newUpvoters = [...upvoters, userId]
+        }
+        db.run('UPDATE comments SET upvoters=? WHERE id=?;', [
+          newUpvoters,
+          commentId,
+        ], (e) => {
+          if (e) {
+            res.status(400).json({ error: e.message });
+          } else {
+            res.json({ status: 'SUCCESS'})
+          }
+        })
+      }
+    })
+  } else {
+    res.status(422).json({ error: "Missing commentId or userId" });
+  }
 })
 
 app.listen(port, () => {

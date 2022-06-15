@@ -34,6 +34,35 @@ const onCommentSubmit = async () => {
 
 }
 
+const onUpvoteClick = async (commentId) => {
+  const userData = JSON.parse(localStorage.getItem("userData"));
+
+  const data = {
+    commentId,
+    userId: userData.login.uuid,
+  };
+
+  try {
+    const response = await fetch('/upvote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    const json = await response.json();
+
+    if (json?.status === 'SUCCESS') {
+      loadComments();
+    } else {
+      throw new Error()
+    }
+  } catch (e) {
+    alert("Can't submit comment");
+  }
+}
+
 const generateUserData = async () => {
   try {
     const res = await fetch("https://randomuser.me/api/");
@@ -85,19 +114,28 @@ var getRelativeTime = (d1, d2 = new Date()) => {
       return rtf.format(Math.round(elapsed/units[u]), u)
 }
 
-const commentTemplate = (imageUrl, userName, timestamp, text) => `
-  <div class="comment">
-    <img class="thumbnail" src="${imageUrl}" alt="Your image">
-    <div class="commentTextWrapper">
-      <span class="commentName">${userName} <span class="commentTimestamp">・ ${getRelativeTime(+new Date(parseInt(timestamp)))}</span></span>
-      <div class="commentText">${text}</div>
-      <div class="commentButtons">
-        <button class="commentButton">▲ Upvote</button>
-        <button class="commentButton">Reply</button>
+const commentTemplate = (id, imageUrl, userName, timestamp, text, upvoters) => {
+  const userData = JSON.parse(localStorage.getItem("userData"));
+  const isUpvoted = upvoters.find(upvoter => upvoter === userData.login.uuid);
+  
+  return `
+    <div class="comment">
+      <img class="thumbnail" src="${imageUrl}" alt="Your image">
+      <div class="commentTextWrapper">
+        <span class="commentName">${userName} <span class="commentTimestamp">・ ${getRelativeTime(+new Date(parseInt(timestamp)))}</span></span>
+        <div class="commentText">${text}</div>
+        <div class="commentButtons">
+          <button class="commentButton ${isUpvoted ? 'upvoted' : ''}" onclick="onUpvoteClick('${id}')">▲ Upvote</button>
+          <button class="commentButton">Reply</button>
+          ${upvoters.length !== 0
+            ? `<span class="upvoteCounter">${upvoters.length} upvotes</span>`
+            : ''
+          }
+        </div>
       </div>
     </div>
-  </div>
-`
+  `
+}
 
 const renderComments = () => {
   if (window.commentData === null) {
@@ -109,13 +147,16 @@ const renderComments = () => {
   }
 
   const commentsElement = document.querySelector('.comments')
+  console.log(window.commentData)
   commentsElement.innerHTML = window.commentData
     .map(comment => 
       commentTemplate(
+        comment.id,
         comment.user.thumbnail,
         comment.user.name,
         comment.timestamp,
-        comment.text
+        comment.text,
+        comment.upvoters.filter(id => id !== '')
       )
     )
     .join("")

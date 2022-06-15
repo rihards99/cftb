@@ -129,3 +129,18 @@ article {
 .commentButton:hover {
   color: #7784a8
 }
+
+.commentButton.upvoted {
+  color: #FF5700;
+}
+
+.commentButton.upvoted:hover {
+  color: #FF8700
+}
+
+.upvoteCounter {
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 13px;
+  color: #4B587C;
+}
